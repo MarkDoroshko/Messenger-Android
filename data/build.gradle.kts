@@ -1,12 +1,11 @@
 plugins {
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "com.example.messenger_android"
+    namespace = "com.example.data"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -14,13 +13,10 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.messenger_android"
         minSdk = 28
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {
@@ -36,26 +32,40 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    buildFeatures {
-        compose = true
-    }
 }
 
 dependencies {
-    // Project modules
+    // Domain module
     implementation(project(":domain"))
-    implementation(project(":data"))
-    implementation(project(":presentation"))
-
-    // DataStore
-    implementation(libs.androidx.datastore.preferences)
 
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
 
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
+
+    // Ktor
+    implementation(libs.ktor.client.core)
+    // Движки
+    implementation(libs.ktor.client.cio)
+    // Плагины
+    implementation(libs.ktor.client.logging)
+    implementation(libs.ktor.client.auth)
+    // Сериализация и десериализация
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    // Контроль версий всех ktor зависимостей
+    implementation(platform(libs.ktor.bom))
+
+    // Kotlinx Serialization
+    implementation(libs.kotlinx.serialization.json)
+
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.core)
+
+    // Базовые зависимости
     implementation(libs.androidx.core.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }

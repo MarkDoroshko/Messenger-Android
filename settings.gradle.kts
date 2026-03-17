@@ -24,3 +24,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "Messenger-Android"
 include(":app")
+include(":domain")
+include(":data")
+include(":presentation")
