@@ -14,8 +14,8 @@ class AuthManager @Inject constructor(
         return tokenRepository.getTokens()?.toBearerTokens()
     }
 
-    suspend fun refreshAccessToken(refreshToken: String?): BearerTokens? {
-        return authRepository.refresh(refreshToken ?: return null).fold(
+    suspend fun refreshAccessToken(refreshToken: String): BearerTokens? {
+        return authRepository.refresh(refreshToken).fold(
             onSuccess = { it.toBearerTokens() },
             onFailure = { null }
         )

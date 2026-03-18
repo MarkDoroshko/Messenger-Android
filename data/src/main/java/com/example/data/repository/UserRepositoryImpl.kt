@@ -13,7 +13,8 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun getProfile(): Result<UserProfile> {
         return runCatching { userApi.getProfile() }
             .mapCatching {
-                it.toEntity() ?: throw IllegalArgumentException("User profile is null!")
+                it.toEntity()
+                    ?: throw IllegalArgumentException("Some fields in user object is null!")
             }
     }
 
@@ -26,7 +27,8 @@ class UserRepositoryImpl @Inject constructor(
             userApi.updateProfile(UpdateProfileRequest(displayName, phone, bio))
         }
             .mapCatching {
-                it.toEntity() ?: throw IllegalArgumentException("User profile is null!")
+                it.toEntity()
+                    ?: throw IllegalArgumentException("Some fields in user object is null!")
             }
     }
 }

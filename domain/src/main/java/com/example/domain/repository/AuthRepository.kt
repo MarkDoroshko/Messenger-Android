@@ -3,7 +3,6 @@ package com.example.domain.repository
 import com.example.domain.entity.Tokens
 
 interface AuthRepository {
-
     suspend fun login(email: String, password: String): Result<Unit>
 
     suspend fun register(

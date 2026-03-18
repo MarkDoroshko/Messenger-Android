@@ -58,7 +58,7 @@ object NetworkModule {
                 maxRetries = 5
                 retryIf { request, response ->
                     !request.url.encodedPath.contains("/auth") &&
-                        response.status.value in 500..599
+                            response.status.value in 500..599
                 }
                 exponentialDelay()
             }
@@ -71,7 +71,9 @@ object NetworkModule {
                     refreshTokens {
                         val currentTokens = this.oldTokens ?: return@refreshTokens null
 
-                        val newTokens = authManager.refreshAccessToken(currentTokens.refreshToken)
+                        val newTokens = authManager.refreshAccessToken(
+                            currentTokens.refreshToken ?: return@refreshTokens null
+                        )
                             ?: return@refreshTokens null
 
                         authManager.saveTokens(newTokens)

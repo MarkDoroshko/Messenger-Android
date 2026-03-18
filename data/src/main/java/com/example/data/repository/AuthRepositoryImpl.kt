@@ -18,7 +18,10 @@ class AuthRepositoryImpl @Inject constructor(
         password: String
     ): Result<Unit> {
         return runCatching { authApi.login(LoginRequest(email, password)) }
-            .mapCatching { tokenRepository.saveTokens(it.accessToken, it.refreshToken) }
+            .mapCatching {
+                val tokens = it.toTokens() ?: throw IllegalArgumentException("Some token is null!")
+                tokenRepository.saveTokens(tokens.accessToken, tokens.refreshToken)
+            }
     }
 
     override suspend fun register(
@@ -30,15 +33,18 @@ class AuthRepositoryImpl @Inject constructor(
     ): Result<Unit> {
         return runCatching {
             authApi.register(RegisterRequest(email, password, displayName, phone, bio))
-        }.mapCatching { tokenRepository.saveTokens(it.accessToken, it.refreshToken) }
+        }.mapCatching {
+            val tokens = it.toTokens() ?: throw IllegalArgumentException("Some token is null!")
+            tokenRepository.saveTokens(tokens.accessToken, tokens.refreshToken)
+        }
     }
 
     override suspend fun refresh(refreshToken: String): Result<Tokens> {
         return runCatching { authApi.refresh(refreshToken) }
-            .mapCatching { it.toTokens() }
             .mapCatching {
-                tokenRepository.saveTokens(it.accessToken, it.refreshToken)
-                it
+                val tokens = it.toTokens() ?: throw IllegalArgumentException("Some token is null!")
+                tokenRepository.saveTokens(tokens.accessToken, tokens.refreshToken)
+                tokens
             }
     }
 }
