@@ -33,7 +33,7 @@ class AuthApiImpl @Inject constructor(
     override suspend fun refresh(refreshToken: String): AuthResponse {
         return client.post("${Constants.BASE_URL}/auth/refresh") {
             contentType(ContentType.Application.Json)
-            setBody(refreshToken)
+            setBody(mapOf("refresh_token" to refreshToken))
         }.body<AuthResponse>()
     }
 }

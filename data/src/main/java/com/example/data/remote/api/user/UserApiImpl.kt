@@ -16,11 +16,11 @@ class UserApiImpl @Inject constructor(
     private val client: HttpClient
 ) : UserApi {
     override suspend fun getProfile(): UserProfileResponse {
-        return client.get("${Constants.BASE_URL}/user/profile").body<UserProfileResponse>()
+        return client.get("${Constants.BASE_URL}/profile").body<UserProfileResponse>()
     }
 
     override suspend fun updateProfile(updatedProfile: UpdateProfileRequest): UserProfileResponse {
-        return client.patch("${Constants.BASE_URL}/user/profile") {
+        return client.patch("${Constants.BASE_URL}/profile") {
             contentType(ContentType.Application.Json)
             setBody(updatedProfile)
         }.body<UserProfileResponse>()
