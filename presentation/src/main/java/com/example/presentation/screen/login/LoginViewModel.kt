@@ -1,5 +1,6 @@
 package com.example.presentation.screen.login
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.domain.usecase.auth.LoginUseCase
@@ -44,6 +45,7 @@ class LoginViewModel @Inject constructor(
                                 previousState
                             },
                             onFailure = {
+                                Log.e("App", it.toString())
                                 previousState.copy(error = it.toUserMessage())
                             }
                         )

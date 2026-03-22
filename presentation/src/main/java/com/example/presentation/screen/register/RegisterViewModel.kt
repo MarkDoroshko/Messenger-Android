@@ -1,5 +1,6 @@
 package com.example.presentation.screen.register
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.domain.usecase.auth.RegisterUseCase
@@ -59,7 +60,10 @@ class RegisterViewModel @Inject constructor(
                             bio = previousState.bio
                         ).fold(
                             onSuccess = { previousState },
-                            onFailure = { previousState.copy(error = it.toUserMessage()) }
+                            onFailure = {
+                                Log.e("App", it.toString())
+                                previousState.copy(error = it.toUserMessage())
+                            }
                         )
                     }
                 }

@@ -1,5 +1,6 @@
 package com.example.presentation.screen.profile
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.domain.usecase.user.GetProfileUseCase
@@ -56,7 +57,10 @@ class ProfileViewModel @Inject constructor(
                                 bio = userProfile.bio
                             )
                         },
-                        onFailure = { _state.value = ProfileState.Error(it.toUserMessage()) }
+                        onFailure = {
+                            Log.e("App", it.toString())
+                            _state.value = ProfileState.Error(it.toUserMessage())
+                        }
                     )
                 }
             }
@@ -77,7 +81,10 @@ class ProfileViewModel @Inject constructor(
                                         bio = userProfile.bio
                                     )
                                 },
-                                onFailure = { ProfileState.Error(it.toUserMessage()) }
+                                onFailure = {
+                                    Log.e("App", it.toString())
+                                    ProfileState.Error(it.toUserMessage())
+                                }
                             )
                         } else previousState
                     }
