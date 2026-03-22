@@ -3,6 +3,7 @@ package com.example.messenger_android.di
 import com.example.domain.repository.AuthRepository
 import com.example.domain.repository.TokenRepository
 import com.example.domain.repository.UserRepository
+import com.example.domain.usecase.auth.CheckLoggedUseCase
 import com.example.domain.usecase.auth.LoginUseCase
 import com.example.domain.usecase.auth.LogoutUseCase
 import com.example.domain.usecase.auth.RegisterUseCase
@@ -47,4 +48,10 @@ object UseCaseModule {
     fun provideUpdateProfileUseCase(
         userRepository: UserRepository
     ): UpdateProfileUseCase = UpdateProfileUseCase(userRepository)
+
+    @Provides
+    @Singleton
+    fun provideCheckLoggedUseCase(
+        tokenRepository: TokenRepository
+    ): CheckLoggedUseCase = CheckLoggedUseCase(tokenRepository)
 }

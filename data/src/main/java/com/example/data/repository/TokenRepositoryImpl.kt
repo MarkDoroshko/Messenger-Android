@@ -38,6 +38,12 @@ class TokenRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun isLoggedIn(): Flow<Boolean> {
+        return dataStore.data.map { preferences ->
+            preferences[ACCESS_TOKEN_KEY] != null && preferences[REFRESH_TOKEN_KEY] != null
+        }
+    }
+
     companion object {
         private val ACCESS_TOKEN_KEY = stringPreferencesKey("access_key")
         private val REFRESH_TOKEN_KEY = stringPreferencesKey("refresh_key")

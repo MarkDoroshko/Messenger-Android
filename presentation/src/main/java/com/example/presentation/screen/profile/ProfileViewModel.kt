@@ -50,7 +50,11 @@ class ProfileViewModel @Inject constructor(
                 viewModelScope.launch {
                     getProfileUseCase().fold(
                         onSuccess = { userProfile ->
-
+                            _state.value = ProfileState.Data(
+                                displayName = userProfile.displayName,
+                                phone = userProfile.phone,
+                                bio = userProfile.bio
+                            )
                         },
                         onFailure = { _state.value = ProfileState.Error(it.toUserMessage()) }
                     )
@@ -58,7 +62,26 @@ class ProfileViewModel @Inject constructor(
             }
 
             ProfileIntent.Update -> {
-
+                viewModelScope.launch {
+                    _state.update { previousState ->
+                        if (previousState is ProfileState.Data) {
+                            updateProfileUseCase(
+                                previousState.displayName,
+                                previousState.phone,
+                                previousState.bio
+                            ).fold(
+                                onSuccess = { userProfile ->
+                                    ProfileState.Data(
+                                        displayName = userProfile.displayName,
+                                        phone = userProfile.phone,
+                                        bio = userProfile.bio
+                                    )
+                                },
+                                onFailure = { ProfileState.Error(it.toUserMessage()) }
+                            )
+                        } else previousState
+                    }
+                }
             }
         }
     }
