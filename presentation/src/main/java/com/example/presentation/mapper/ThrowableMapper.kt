@@ -1,5 +1,6 @@
 package com.example.presentation.mapper
 
+import com.example.domain.exception.AppHttpException
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException

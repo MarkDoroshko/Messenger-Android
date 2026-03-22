@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.domain.usecase.user.GetProfileUseCase
 import com.example.domain.usecase.user.UpdateProfileUseCase
+import com.example.presentation.mapper.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,7 +52,7 @@ class ProfileViewModel @Inject constructor(
                         onSuccess = { userProfile ->
 
                         },
-                        onFailure = { _state.value = ProfileState.Error(it) }
+                        onFailure = { _state.value = ProfileState.Error(it.toUserMessage()) }
                     )
                 }
             }

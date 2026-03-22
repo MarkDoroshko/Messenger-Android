@@ -7,9 +7,11 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import com.example.domain.exception.AppHttpException
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -39,6 +41,15 @@ object NetworkModule {
         json: Json
     ): HttpClient {
         return HttpClient(CIO) {
+            HttpResponseValidator {
+                validateResponse { response ->
+                    val statusCode = response.status.value
+                    if (statusCode >= 400) {
+                        throw AppHttpException(statusCode)
+                    }
+                }
+            }
+
             install(ContentNegotiation) {
                 json(json)
             }
