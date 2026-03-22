@@ -75,7 +75,7 @@ fun LoginScreen(
                     shape = ShapeAppTextField.TOP_ROUNDING,
                     value = state.email,
                     onValueChange = { viewModel.processCommand(LoginCommand.InputEmail(it)) },
-                    placeholderText = stringResource(R.string.nickname),
+                    placeholderText = stringResource(R.string.email),
                     leadingIcon = rememberVectorPainter(Icons.Default.Email)
                 )
 

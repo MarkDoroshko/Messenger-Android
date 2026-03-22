@@ -3,6 +3,7 @@ package com.example.presentation.screen.register
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.domain.usecase.auth.RegisterUseCase
+import com.example.presentation.mapper.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,27 +49,19 @@ class RegisterViewModel @Inject constructor(
             }
 
             RegisterCommand.Submit -> {
-                var response: Result<Unit>? = null
-
                 viewModelScope.launch {
-                    response = registerUseCase(
-                        email = _state.value.email,
-                        password = _state.value.password,
-                        displayName = state.value.displayName,
-                        phone = state.value.password,
-                        bio = state.value.bio
-                    )
-                }
-
-                _state.update { previousState ->
-                    response?.fold(
-                        onSuccess = {
-                            previousState
-                        },
-                        onFailure = {
-                            previousState.copy(error = it.message)
-                        }
-                    ) ?: previousState
+                    _state.update { previousState ->
+                        registerUseCase(
+                            email = previousState.email,
+                            password = previousState.password,
+                            displayName = previousState.displayName,
+                            phone = previousState.phone,
+                            bio = previousState.bio
+                        ).fold(
+                            onSuccess = { previousState },
+                            onFailure = { previousState.copy(error = it.toUserMessage()) }
+                        )
+                    }
                 }
             }
 

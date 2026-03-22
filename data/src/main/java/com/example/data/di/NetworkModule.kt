@@ -3,6 +3,7 @@ package com.example.data.di
 import com.example.data.remote.manager.AuthManager
 import com.example.domain.repository.AuthRepository
 import com.example.domain.repository.TokenRepository
+import dagger.Lazy
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -100,6 +101,6 @@ object NetworkModule {
     @Singleton
     fun provideAuthManager(
         tokenRepository: TokenRepository,
-        authRepository: AuthRepository
+        authRepository: Lazy<AuthRepository>
     ): AuthManager = AuthManager(tokenRepository, authRepository)
 }

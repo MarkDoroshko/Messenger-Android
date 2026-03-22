@@ -3,6 +3,7 @@ package com.example.presentation.screen.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.domain.usecase.auth.LoginUseCase
+import com.example.presentation.mapper.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,18 +22,14 @@ class LoginViewModel @Inject constructor(
     fun processCommand(command: LoginCommand) {
         when (command) {
             is LoginCommand.InputEmail -> {
-                viewModelScope.launch {
-                    _state.update { previousState ->
-                        previousState.copy(email = command.value)
-                    }
+                _state.update { previousState ->
+                    previousState.copy(email = command.value)
                 }
             }
 
             is LoginCommand.InputPassword -> {
-                viewModelScope.launch {
-                    _state.update { previousState ->
-                        previousState.copy(password = command.value)
-                    }
+                _state.update { previousState ->
+                    previousState.copy(password = command.value)
                 }
             }
 
@@ -47,7 +44,7 @@ class LoginViewModel @Inject constructor(
                                 previousState
                             },
                             onFailure = {
-                                previousState.copy(error = it.message)
+                                previousState.copy(error = it.toUserMessage())
                             }
                         )
                     }
