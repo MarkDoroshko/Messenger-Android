@@ -23,38 +23,46 @@ class ProfileViewModel @Inject constructor(
 
     fun onIntent(intent: ProfileIntent) {
         when (intent) {
-            is ProfileIntent.InputBio -> {
+            is ProfileIntent.Input -> {
                 _state.update { previousState ->
-                    if (previousState is ProfileState.Data) {
-                        previousState.copy(bio = intent.query)
-                    } else previousState
-                }
-            }
+                    if (previousState.content != null && previousState.content is ProfileContent.Loaded) {
+                        when (intent.typeField) {
+                            TypeField.DISPLAY_NAME -> previousState.copy(
+                                content = previousState.content.copy(
+                                    displayName = intent.value
+                                )
+                            )
 
-            is ProfileIntent.InputDisplayName -> {
-                _state.update { previousState ->
-                    if (previousState is ProfileState.Data) {
-                        previousState.copy(displayName = intent.query)
-                    } else previousState
-                }
-            }
+                            TypeField.PHONE -> previousState.copy(
+                                content = previousState.content.copy(
+                                    phone = intent.value
+                                )
+                            )
 
-            is ProfileIntent.InputPhone -> {
-                _state.update { previousState ->
-                    if (previousState is ProfileState.Data) {
-                        previousState.copy(phone = intent.query)
+                            TypeField.BIO -> previousState.copy(
+                                content = previousState.content.copy(
+                                    bio = intent.value
+                                )
+                            )
+                        }
                     } else previousState
                 }
             }
 
             ProfileIntent.Load -> {
+                _state.value = _state.value.copy(isLoading = true)
+
                 viewModelScope.launch {
                     getProfileUseCase().fold(
                         onSuccess = { userProfile ->
-                            _state.value = ProfileState.Data(
-                                displayName = userProfile.displayName,
-                                phone = userProfile.phone,
-                                bio = userProfile.bio
+                            _state.value = _state.value.copy(isLoading = false)
+
+                            _state.value = _state.value.copy(
+                                content = ProfileContent.Loaded(
+                                    displayName = userProfile.displayName,
+                                    phone = userProfile.phone,
+                                    bio = userProfile.bio
+                                )
                             )
                         },
                         onFailure = {
@@ -94,18 +102,20 @@ class ProfileViewModel @Inject constructor(
     }
 }
 
-sealed interface ProfileState {
-    data class Data(
+data class ProfileState(
+    val content: ProfileContent? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
+sealed interface ProfileContent {
+    data class Loaded(
         val displayName: String,
         val phone: String,
         val bio: String
-    ) : ProfileState
+    ) : ProfileContent
 
-    data object Loading : ProfileState
-
-    data class Error(
-        val error: String? = null
-    ) : ProfileState
+    data object Empty : ProfileContent
 }
 
 sealed interface ProfileIntent {
@@ -113,9 +123,10 @@ sealed interface ProfileIntent {
 
     data object Update : ProfileIntent
 
-    data class InputDisplayName(val query: String) : ProfileIntent
-
-    data class InputPhone(val query: String) : ProfileIntent
-
-    data class InputBio(val query: String) : ProfileIntent
+    data class Input(
+        val typeField: TypeField,
+        val value: String
+    ) : ProfileIntent
 }
+
+enum class TypeField { DISPLAY_NAME, PHONE, BIO }

@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -79,7 +78,7 @@ fun RegisterScreen(
                 AppTextField(
                     shape = ShapeAppTextField.TOP_ROUNDING,
                     value = state.email,
-                    onValueChange = { viewModel.processCommand(RegisterCommand.InputEmail(it)) },
+                    onValueChange = { viewModel.processIntent(RegisterIntent.Input(TypeField.EMAIL, it)) },
                     placeholderText = stringResource(R.string.email),
                     leadingIcon = rememberVectorPainter(Icons.Default.Email)
                 )
@@ -87,11 +86,11 @@ fun RegisterScreen(
                 PasswordTextField(
                     shape = ShapeAppTextField.WITHOUT_ROUNDING,
                     value = state.password,
-                    onValueChange = { viewModel.processCommand(RegisterCommand.InputPassword(it)) },
+                    onValueChange = { viewModel.processIntent(RegisterIntent.Input(TypeField.PASSWORD, it)) },
                     placeholderText = stringResource(R.string.password),
                     leadingIcon = rememberVectorPainter(Icons.Default.Password),
                     passwordVisibility = state.passwordVisibility,
-                    onChangePasswordVisibility = { viewModel.processCommand(RegisterCommand.ChangePasswordVisibility) },
+                    onChangePasswordVisibility = { viewModel.processIntent(RegisterIntent.ChangePasswordVisibility) },
                 )
 
                 HorizontalDivider(
@@ -103,7 +102,7 @@ fun RegisterScreen(
                 AppTextField(
                     shape = ShapeAppTextField.WITHOUT_ROUNDING,
                     value = state.displayName,
-                    onValueChange = { viewModel.processCommand(RegisterCommand.InputDisplayName(it)) },
+                    onValueChange = { viewModel.processIntent(RegisterIntent.Input(TypeField.DISPLAY_NAME, it)) },
                     placeholderText = stringResource(R.string.displayName),
                     leadingIcon = rememberVectorPainter(Icons.Default.Public)
                 )
@@ -111,7 +110,7 @@ fun RegisterScreen(
                 AppTextField(
                     shape = ShapeAppTextField.WITHOUT_ROUNDING,
                     value = state.phone,
-                    onValueChange = { viewModel.processCommand(RegisterCommand.InputPhone(it)) },
+                    onValueChange = { viewModel.processIntent(RegisterIntent.Input(TypeField.PHONE, it)) },
                     placeholderText = stringResource(R.string.phone),
                     leadingIcon = rememberVectorPainter(Icons.Default.Phone)
                 )
@@ -119,7 +118,7 @@ fun RegisterScreen(
                 AppTextField(
                     shape = ShapeAppTextField.BOTTOM_ROUNDING,
                     value = state.bio,
-                    onValueChange = { viewModel.processCommand(RegisterCommand.InputBio(it)) },
+                    onValueChange = { viewModel.processIntent(RegisterIntent.Input(TypeField.BIO, it)) },
                     placeholderText = stringResource(R.string.bio),
                     leadingIcon = rememberVectorPainter(Icons.AutoMirrored.Filled.Notes)
                 )
@@ -138,7 +137,7 @@ fun RegisterScreen(
 
             AppButton(
                 text = stringResource(R.string.sign_up_button),
-                onClick = { viewModel.processCommand(RegisterCommand.Submit) },
+                onClick = { viewModel.processIntent(RegisterIntent.Submit) },
                 enabled = state.isSubmitButtonEnabled
             )
         }

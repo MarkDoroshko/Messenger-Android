@@ -19,37 +19,21 @@ class RegisterViewModel @Inject constructor(
     private val _state = MutableStateFlow(RegisterState())
     val state = _state.asStateFlow()
 
-    fun processCommand(command: RegisterCommand) {
-        when (command) {
-            is RegisterCommand.InputEmail -> {
+    fun processIntent(intent: RegisterIntent) {
+        when (intent) {
+            is RegisterIntent.Input -> {
                 _state.update { previousState ->
-                    previousState.copy(email = command.value)
+                    when (intent.typeField) {
+                        TypeField.EMAIL -> previousState.copy(email = intent.value)
+                        TypeField.PASSWORD -> previousState.copy(password = intent.value)
+                        TypeField.DISPLAY_NAME -> previousState.copy(displayName = intent.value)
+                        TypeField.PHONE -> previousState.copy(phone = intent.value)
+                        TypeField.BIO -> previousState.copy(bio = intent.value)
+                    }
                 }
             }
 
-            is RegisterCommand.InputPassword -> {
-                _state.update { previousState ->
-                    previousState.copy(password = command.value)
-                }
-            }
-
-            is RegisterCommand.InputBio -> {
-                _state.update { previousState ->
-                    previousState.copy(bio = command.value)
-                }
-            }
-            is RegisterCommand.InputDisplayName -> {
-                _state.update { previousState ->
-                    previousState.copy(displayName = command.value)
-                }
-            }
-            is RegisterCommand.InputPhone -> {
-                _state.update { previousState ->
-                    previousState.copy(phone = command.value)
-                }
-            }
-
-            RegisterCommand.Submit -> {
+            RegisterIntent.Submit -> {
                 viewModelScope.launch {
                     _state.update { previousState ->
                         registerUseCase(
@@ -69,7 +53,7 @@ class RegisterViewModel @Inject constructor(
                 }
             }
 
-            RegisterCommand.ChangePasswordVisibility -> {
+            RegisterIntent.ChangePasswordVisibility -> {
                 _state.update { previousState ->
                     previousState.copy(passwordVisibility = !previousState.passwordVisibility)
                 }
@@ -91,15 +75,15 @@ data class RegisterState(
         get() = email.isNotBlank() && password.isNotBlank() && displayName.isNotBlank() && phone.isNotBlank() && bio.isNotBlank()
 }
 
-sealed interface RegisterCommand {
-    data class InputEmail(val value: String) : RegisterCommand
+sealed interface RegisterIntent {
+    data class Input(
+        val typeField: TypeField,
+        val value: String
+    ) : RegisterIntent
 
-    data class InputPassword(val value: String) : RegisterCommand
-    data class InputDisplayName(val value: String) : RegisterCommand
-    data class InputPhone(val value: String) : RegisterCommand
-    data class InputBio(val value: String) : RegisterCommand
+    data object ChangePasswordVisibility : RegisterIntent
 
-    data object ChangePasswordVisibility : RegisterCommand
-
-    data object Submit : RegisterCommand
+    data object Submit : RegisterIntent
 }
+
+enum class TypeField { EMAIL, PASSWORD, DISPLAY_NAME, PHONE, BIO }

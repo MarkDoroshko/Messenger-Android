@@ -74,7 +74,7 @@ fun LoginScreen(
                 AppTextField(
                     shape = ShapeAppTextField.TOP_ROUNDING,
                     value = state.email,
-                    onValueChange = { viewModel.processCommand(LoginCommand.InputEmail(it)) },
+                    onValueChange = { viewModel.processIntent(LoginIntent.Input(TypeField.EMAIL, it)) },
                     placeholderText = stringResource(R.string.email),
                     leadingIcon = rememberVectorPainter(Icons.Default.Email)
                 )
@@ -88,11 +88,11 @@ fun LoginScreen(
                 PasswordTextField(
                     shape = ShapeAppTextField.BOTTOM_ROUNDING,
                     value = state.password,
-                    onValueChange = { viewModel.processCommand(LoginCommand.InputPassword(it)) },
+                    onValueChange = { viewModel.processIntent(LoginIntent.Input(TypeField.PASSWORD, it)) },
                     placeholderText = stringResource(R.string.password),
                     leadingIcon = rememberVectorPainter(Icons.Default.Password),
                     passwordVisibility = state.passwordVisibility,
-                    onChangePasswordVisibility = { viewModel.processCommand(LoginCommand.ChangePasswordVisibility) },
+                    onChangePasswordVisibility = { viewModel.processIntent(LoginIntent.ChangePasswordVisibility) },
                 )
             }
 
@@ -109,7 +109,7 @@ fun LoginScreen(
 
             AppButton(
                 text = stringResource(R.string.sign_in_button),
-                onClick = { viewModel.processCommand(LoginCommand.Submit) },
+                onClick = { viewModel.processIntent(LoginIntent.Submit) },
                 enabled = state.isSubmitButtonEnabled
             )
         }

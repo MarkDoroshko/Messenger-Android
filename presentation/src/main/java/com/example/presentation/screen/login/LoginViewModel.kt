@@ -20,30 +20,25 @@ class LoginViewModel @Inject constructor(
     private val _state = MutableStateFlow(LoginState())
     val state = _state.asStateFlow()
 
-    fun processCommand(command: LoginCommand) {
-        when (command) {
-            is LoginCommand.InputEmail -> {
+    fun processIntent(intent: LoginIntent) {
+        when (intent) {
+            is LoginIntent.Input -> {
                 _state.update { previousState ->
-                    previousState.copy(email = command.value)
+                    when (intent.typeField) {
+                        TypeField.EMAIL -> previousState.copy(email = intent.value)
+                        TypeField.PASSWORD -> previousState.copy(password = intent.value)
+                    }
                 }
             }
 
-            is LoginCommand.InputPassword -> {
-                _state.update { previousState ->
-                    previousState.copy(password = command.value)
-                }
-            }
-
-            LoginCommand.Submit -> {
+            LoginIntent.Submit -> {
                 viewModelScope.launch {
                     _state.update { previousState ->
                         loginUseCase(
                             email = previousState.email,
                             password = previousState.password
                         ).fold(
-                            onSuccess = {
-                                previousState
-                            },
+                            onSuccess = { previousState },
                             onFailure = {
                                 Log.e("App", it.toString())
                                 previousState.copy(error = it.toUserMessage())
@@ -53,7 +48,7 @@ class LoginViewModel @Inject constructor(
                 }
             }
 
-            LoginCommand.ChangePasswordVisibility -> {
+            LoginIntent.ChangePasswordVisibility -> {
                 _state.update { previousState ->
                     previousState.copy(passwordVisibility = !previousState.passwordVisibility)
                 }
@@ -72,16 +67,15 @@ data class LoginState(
         get() = email.isNotBlank() && password.isNotBlank()
 }
 
-sealed interface LoginCommand {
-    data class InputEmail(
+sealed interface LoginIntent {
+    data class Input(
+        val typeField: TypeField,
         val value: String
-    ) : LoginCommand
+    ) : LoginIntent
 
-    data class InputPassword(
-        val value: String
-    ) : LoginCommand
+    data object ChangePasswordVisibility : LoginIntent
 
-    data object ChangePasswordVisibility : LoginCommand
-
-    data object Submit : LoginCommand
+    data object Submit : LoginIntent
 }
+
+enum class TypeField { EMAIL, PASSWORD }
