@@ -196,37 +196,16 @@ private fun ContactRow(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
-            // Точка-индикатор онлайна
-            if (contact.presence.online) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4CAF50))
-                        .align(Alignment.BottomEnd)
-                )
-            }
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    contact.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    if (contact.presence.online) "online" else "offline",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (contact.presence.online)
-                        Color(0xFF4CAF50)
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                contact.displayName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Spacer(Modifier.height(2.dp))
             val preview = contact.lastMessage
             if (preview != null) {

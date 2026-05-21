@@ -1,10 +1,10 @@
 package com.example.data.remote.ws
 
+import android.util.Base64
 import android.util.Log
 import com.example.data.remote.manager.AuthManager
 import com.example.data.util.Constants
 import com.example.domain.entity.ChatMessage
-import com.example.domain.entity.Presence
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocketSession
@@ -30,16 +30,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.add
-import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -59,17 +57,18 @@ class MessengerSocket @Inject constructor(
     @Volatile
     private var connectIntent = false
 
-    /** Все userId, на presence которых сейчас должна быть подписка. */
-    private val subscribedPresence = mutableSetOf<String>()
+    @Volatile
+    private var myUserId: String = ""
 
     private val _connected = MutableStateFlow(false)
     val connected: StateFlow<Boolean> = _connected.asStateFlow()
 
-    private val _incoming = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 64)
+    /**
+     * Поток ВСЕХ сообщений в сессии этого юзера — и входящих с сервера, и собственных отправленных.
+     * Любая часть UI может на него подписаться (чат, список контактов).
+     */
+    private val _incoming = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 128)
     val incoming: SharedFlow<ChatMessage> = _incoming.asSharedFlow()
-
-    private val _presence = MutableSharedFlow<Presence>(extraBufferCapacity = 64)
-    val presence: SharedFlow<Presence> = _presence.asSharedFlow()
 
     suspend fun connect() {
         mutex.withLock {
@@ -89,7 +88,7 @@ class MessengerSocket @Inject constructor(
             listenerJob?.cancel()
             listenerJob = null
             _connected.value = false
-            subscribedPresence.clear()
+            myUserId = ""
         }
     }
 
@@ -107,46 +106,19 @@ class MessengerSocket @Inject constructor(
             put("clientMessageId", clientMessageId)
         }
         s.send(Frame.Text(json.encodeToString(JsonObject.serializer(), payload)))
-    }
 
-    /**
-     * Подписаться на presence-апдейты этих юзеров. Идемпотентно.
-     * После reconnect'а подписки восстанавливаются автоматически.
-     */
-    suspend fun subscribePresence(userIds: Collection<String>) {
-        if (userIds.isEmpty()) return
-        mutex.withLock {
-            val added = userIds.filter { subscribedPresence.add(it) }
-            if (added.isEmpty()) return@withLock
-            val s = session ?: return@withLock
-            sendSubscribeFrame(s, "subscribe_presence", added)
-        }
-    }
-
-    suspend fun unsubscribePresence(userIds: Collection<String>) {
-        if (userIds.isEmpty()) return
-        mutex.withLock {
-            val removed = userIds.filter { subscribedPresence.remove(it) }
-            if (removed.isEmpty()) return@withLock
-            val s = session ?: return@withLock
-            sendSubscribeFrame(s, "unsubscribe_presence", removed)
-        }
-    }
-
-    private suspend fun sendSubscribeFrame(
-        s: DefaultClientWebSocketSession,
-        type: String,
-        ids: Collection<String>
-    ) {
-        val payload = buildJsonObject {
-            put("type", type)
-            put("userIds", buildJsonArray { ids.forEach { add(JsonPrimitive(it)) } })
-        }
-        try {
-            s.send(Frame.Text(json.encodeToString(JsonObject.serializer(), payload)))
-        } catch (t: Throwable) {
-            Log.w("App", "WS subscribe send failed: ${t.message}")
-        }
+        // Эмитим собственное сообщение в общий поток — чтобы и чат, и список контактов
+        // увидели его как любое другое (без отдельной "оптимистичной" логики на местах).
+        val now = Instant.now().toString()
+        _incoming.tryEmit(
+            ChatMessage(
+                id = clientMessageId,
+                from = myUserId,
+                to = toUserId,
+                content = content,
+                createdAt = now
+            )
+        )
     }
 
     /** ВНИМАНИЕ: вызывать только внутри mutex. */
@@ -158,6 +130,7 @@ class MessengerSocket @Inject constructor(
             Log.w("App", "WS open skipped — no access token")
             return
         }
+        myUserId = extractSub(token).orEmpty()
 
         try {
             val newSession = client.webSocketSession {
@@ -166,12 +139,7 @@ class MessengerSocket @Inject constructor(
             }
             session = newSession
             _connected.value = true
-            Log.i("App", "WS connected")
-
-            // Восстанавливаем подписки на presence после reconnect'а
-            if (subscribedPresence.isNotEmpty()) {
-                sendSubscribeFrame(newSession, "subscribe_presence", subscribedPresence.toList())
-            }
+            Log.i("App", "WS connected (me=$myUserId)")
 
             listenerJob = scope.launch {
                 try {
@@ -227,22 +195,20 @@ class MessengerSocket @Inject constructor(
                 )
                 _incoming.emit(msg)
             }
-            "presence" -> {
-                val userId = obj.field("userId")
-                if (userId.isNotEmpty()) {
-                    _presence.emit(
-                        Presence(
-                            userId = userId,
-                            online = obj.field("status") == "online",
-                            lastSeen = obj["lastSeen"]?.jsonPrimitive?.contentOrNull
-                        )
-                    )
-                }
-            }
             else -> Unit
         }
     }
 
     private fun JsonObject.field(name: String): String =
         this[name]?.jsonPrimitive?.contentOrNull ?: ""
+
+    private fun extractSub(token: String): String? {
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return null
+            val payload = Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
+                .toString(Charsets.UTF_8)
+            Regex("\"sub\"\\s*:\\s*\"([^\"]+)\"").find(payload)?.groupValues?.get(1)
+        } catch (e: Exception) { null }
+    }
 }

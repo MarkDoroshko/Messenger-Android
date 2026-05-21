@@ -9,8 +9,7 @@ fun ContactDto.toEntity(): Contact = Contact(
     peerId = peerId,
     displayName = displayName,
     createdAt = createdAt,
-    lastMessage = lastMessage?.toEntity(),
-    presence = presence.toEntity(peerId)
+    lastMessage = lastMessage?.toEntity()
 )
 
 fun LastMessageDto.toEntity(): LastMessagePreview = LastMessagePreview(

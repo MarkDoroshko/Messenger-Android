@@ -4,8 +4,7 @@ data class Contact(
     val peerId: String,
     val displayName: String,
     val createdAt: String,
-    val lastMessage: LastMessagePreview?,
-    val presence: Presence
+    val lastMessage: LastMessagePreview?
 )
 
 data class LastMessagePreview(

@@ -5,7 +5,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.domain.entity.ChatMessage
-import com.example.domain.repository.PresenceRepository
 import com.example.domain.repository.TokenRepository
 import com.example.domain.usecase.messages.ConnectSocketUseCase
 import com.example.domain.usecase.messages.GetHistoryUseCase
@@ -28,8 +27,7 @@ class ChatViewModel @Inject constructor(
     private val getHistory: GetHistoryUseCase,
     private val sendMessage: SendMessageUseCase,
     private val observeIncoming: ObserveIncomingUseCase,
-    private val connectSocket: ConnectSocketUseCase,
-    private val presenceRepo: PresenceRepository
+    private val connectSocket: ConnectSocketUseCase
 ) : ViewModel() {
 
     val peerId: String = savedState.get<String>("peerId").orEmpty()
@@ -43,17 +41,7 @@ class ChatViewModel @Inject constructor(
             _state.update { it.copy(myUserId = myId) }
         }
         observeMessages()
-        observePresencePush()
         connectAndLoad()
-    }
-
-    override fun onCleared() {
-        // отписываемся, чтобы сервер не слал апдейты в "пустоту"
-        // (он и сам почистит при дисконнекте, но при долгой жизни WS — пусть знает)
-        viewModelScope.launch {
-            try { presenceRepo.unsubscribe(listOf(peerId)) } catch (_: Throwable) {}
-        }
-        super.onCleared()
     }
 
     fun onIntent(intent: ChatIntent) {
@@ -74,9 +62,6 @@ class ChatViewModel @Inject constructor(
                     _state.update { s -> s.copy(error = err.toUserMessage()) }
                 }
             )
-            // подписываемся на presence-апдейты собеседника — сервер моментально пришлёт текущий статус
-            presenceRepo.subscribe(listOf(peerId))
-
             getHistory(peerId).fold(
                 onSuccess = { items ->
                     _state.update {
@@ -104,38 +89,17 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    private fun observePresencePush() {
-        viewModelScope.launch {
-            presenceRepo.updates.collect { p ->
-                if (p.userId == peerId) {
-                    _state.update { it.copy(peerOnline = p.online, peerLastSeen = p.lastSeen) }
-                }
-            }
-        }
-    }
-
     private fun doSend() {
         val text = _state.value.draft.trim()
         if (text.isEmpty()) return
-        val myId = _state.value.myUserId
         val cid = UUID.randomUUID().toString()
         viewModelScope.launch {
-            sendMessage(peerId, text, cid).fold(
-                onSuccess = {
-                    val optimistic = ChatMessage(
-                        id = cid,
-                        from = myId,
-                        to = peerId,
-                        content = text,
-                        createdAt = ""
-                    )
-                    _state.update { it.copy(draft = "", messages = it.messages + optimistic) }
-                },
-                onFailure = { err ->
-                    Log.e("App", "send failed", err)
-                    _state.update { it.copy(error = err.toUserMessage()) }
-                }
-            )
+            // очищаем поле сразу; сообщение прилетит в observeMessages через incoming
+            _state.update { it.copy(draft = "") }
+            sendMessage(peerId, text, cid).onFailure { err ->
+                Log.e("App", "send failed", err)
+                _state.update { it.copy(error = err.toUserMessage(), draft = text) }
+            }
         }
     }
 }
@@ -146,8 +110,6 @@ data class ChatState(
     val isLoading: Boolean = false,
     val messages: List<ChatMessage> = emptyList(),
     val draft: String = "",
-    val peerOnline: Boolean = false,
-    val peerLastSeen: String? = null,
     val error: String? = null
 )
 

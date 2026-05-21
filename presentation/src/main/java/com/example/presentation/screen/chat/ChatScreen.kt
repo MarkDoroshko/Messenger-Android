@@ -63,18 +63,10 @@ fun ChatScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "Чат с ${state.peerId.take(8)}…",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        val status = if (state.peerOnline) "онлайн" else "оффлайн"
-                        val sub = listOfNotNull(
-                            status,
-                            state.peerLastSeen?.let { "last seen $it" }
-                        ).joinToString(" • ")
-                        Text(sub, style = MaterialTheme.typography.bodySmall)
-                    }
+                    Text(
+                        text = "Чат с ${state.peerId.take(8)}…",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             )
         },

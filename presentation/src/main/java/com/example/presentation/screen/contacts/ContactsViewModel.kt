@@ -3,14 +3,17 @@ package com.example.presentation.screen.contacts
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.domain.entity.ChatMessage
 import com.example.domain.entity.Contact
-import com.example.domain.entity.Presence
-import com.example.domain.repository.PresenceRepository
+import com.example.domain.entity.LastMessagePreview
+import com.example.domain.repository.TokenRepository
 import com.example.domain.usecase.contacts.AddContactUseCase
 import com.example.domain.usecase.contacts.ListContactsUseCase
 import com.example.domain.usecase.contacts.RemoveContactUseCase
 import com.example.domain.usecase.messages.ConnectSocketUseCase
+import com.example.domain.usecase.messages.ObserveIncomingUseCase
 import com.example.presentation.mapper.toUserMessage
+import com.example.presentation.util.Jwt
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,18 +35,24 @@ class ContactsViewModel @Inject constructor(
     private val add: AddContactUseCase,
     private val remove: RemoveContactUseCase,
     private val connectSocket: ConnectSocketUseCase,
-    private val presenceRepo: PresenceRepository
+    private val observeIncoming: ObserveIncomingUseCase,
+    private val tokenRepository: TokenRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ContactsState())
     val state = _state.asStateFlow()
 
+    @Volatile
+    private var myUserId: String = ""
+
     init {
         viewModelScope.launch {
-            // WS должен быть открыт для получения push-апдейтов presence
+            myUserId = Jwt.extractSub(tokenRepository.getTokens()?.accessToken).orEmpty()
+        }
+        viewModelScope.launch {
             connectSocket().onFailure { t -> Log.w("App", "WS connect failed: ${t.message}") }
         }
-        observePresencePush()
+        observeIncomingMessages()
         load()
     }
 
@@ -53,7 +62,6 @@ class ContactsViewModel @Inject constructor(
             list().fold(
                 onSuccess = { items ->
                     _state.update { it.copy(items = items, loading = false) }
-                    presenceRepo.subscribe(items.map { it.peerId })
                 },
                 onFailure = { t ->
                     _state.update { it.copy(loading = false, error = t.toUserMessage()) }
@@ -82,7 +90,6 @@ class ContactsViewModel @Inject constructor(
     fun removeContact(peerId: String) {
         viewModelScope.launch {
             remove(peerId).onSuccess { load() }
-            presenceRepo.unsubscribe(listOf(peerId))
         }
     }
 
@@ -90,18 +97,36 @@ class ContactsViewModel @Inject constructor(
         _state.update { it.copy(addError = null) }
     }
 
-    private fun observePresencePush() {
+    private fun observeIncomingMessages() {
         viewModelScope.launch {
-            presenceRepo.updates.collect { p -> applyPresence(p) }
+            observeIncoming().collect { msg -> applyMessage(msg) }
         }
     }
 
-    private fun applyPresence(p: Presence) {
+    private fun applyMessage(msg: ChatMessage) {
+        val peerId = if (msg.from == myUserId) msg.to else msg.from
+        val preview = LastMessagePreview(
+            content = msg.content,
+            createdAt = msg.createdAt,
+            fromMe = msg.from == myUserId
+        )
+
+        var foundContact = false
         _state.update { current ->
-            val items = current.items.map { c ->
-                if (c.peerId == p.userId) c.copy(presence = p) else c
+            val updated = current.items.map { c ->
+                if (c.peerId == peerId) {
+                    foundContact = true
+                    c.copy(lastMessage = preview)
+                } else c
             }
-            current.copy(items = items)
+            if (!foundContact) return@update current
+
+            // Перемещаем обновлённого собеседника в начало (как в Telegram)
+            val moved = updated.partition { it.peerId == peerId }
+            current.copy(items = moved.first + moved.second)
         }
+
+        // Контакта нет в списке — сервер автодобавит, нам нужно перезагрузиться
+        if (!foundContact) load()
     }
 }
