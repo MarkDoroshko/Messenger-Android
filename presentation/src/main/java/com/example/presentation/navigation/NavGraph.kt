@@ -5,10 +5,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.presentation.component.Loader
+import com.example.presentation.screen.chat.ChatScreen
+import com.example.presentation.screen.contacts.ContactsScreen
 import com.example.presentation.screen.login.LoginScreen
 import com.example.presentation.screen.profile.ProfileScreen
 import com.example.presentation.screen.register.RegisterScreen
@@ -25,13 +29,13 @@ fun NavGraph(
 
         else -> {
             val startDestination = when (authState) {
-                AuthState.Authenticated -> Screen.Profile.route
+                AuthState.Authenticated -> Screen.Contacts.route
                 else -> Screen.Login.route
             }
 
             LaunchedEffect(authState) {
                 val target = when (authState) {
-                    AuthState.Authenticated -> Screen.Profile.route
+                    AuthState.Authenticated -> Screen.Contacts.route
                     else -> Screen.Login.route
                 }
                 navController.navigate(target) {
@@ -55,8 +59,28 @@ fun NavGraph(
                     )
                 }
 
+                composable(Screen.Contacts.route) {
+                    ContactsScreen(
+                        onOpenChat = { peerId ->
+                            navController.navigate(Screen.Chat.routeFor(peerId))
+                        },
+                        onOpenProfile = { navController.navigate(Screen.Profile.route) }
+                    )
+                }
+
                 composable(Screen.Profile.route) {
-                    ProfileScreen()
+                    ProfileScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable(
+                    route = Screen.Chat.ROUTE_PATTERN,
+                    arguments = listOf(navArgument("peerId") { type = NavType.StringType })
+                ) {
+                    ChatScreen(
+                        onBack = { navController.popBackStack() }
+                    )
                 }
             }
         }
@@ -65,8 +89,11 @@ fun NavGraph(
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
-
     data object Register : Screen("register")
-
+    data object Contacts : Screen("contacts")
     data object Profile : Screen("profile")
+    data object Chat : Screen("chat/{peerId}") {
+        const val ROUTE_PATTERN = "chat/{peerId}"
+        fun routeFor(peerId: String) = "chat/$peerId"
+    }
 }

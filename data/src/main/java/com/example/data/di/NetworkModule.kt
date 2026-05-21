@@ -18,6 +18,7 @@ import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -53,6 +54,12 @@ object NetworkModule {
 
             install(ContentNegotiation) {
                 json(json)
+            }
+
+            install(WebSockets) {
+                // Keepalive поверх Wi-Fi/NAT. Сервер дополнительно пингует каждые 30с.
+                pingIntervalMillis = 20_000L
+                maxFrameSize = Long.MAX_VALUE
             }
 
             install(Logging) {

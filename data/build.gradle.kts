@@ -53,6 +53,7 @@ dependencies {
     // Плагины
     implementation(libs.ktor.client.logging)
     implementation(libs.ktor.client.auth)
+    implementation(libs.ktor.client.websockets)
     // Сериализация и десериализация
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
